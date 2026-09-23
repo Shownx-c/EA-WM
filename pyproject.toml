@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eawm"
+version = "0.1.0"
+description = "Official training, inference, and KVAF preprocessing code for EA-WM."
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate>=1.10.0",
+    "datasets>=4.0.0",
+    "einops>=0.8.0",
+    "ftfy>=6.3.0",
+    "h5py>=3.14.0",
+    "huggingface-hub>=0.34.0",
+    "imageio>=2.37.0",
+    "imageio[ffmpeg]",
+    "modelscope>=1.29.0",
+    "numpy>=2.0.0",
+    "opencv-python-headless>=4.10.0",
+    "pandas>=2.2.0",
+    "peft>=0.17.0",
+    "Pillow>=11.0.0",
+    "protobuf>=5.0.0",
+    "PyYAML>=6.0",
+    "safetensors>=0.5.0",
+    "sentencepiece>=0.2.0",
+    "tensorboard>=2.19.0",
+    "torch>=2.5.0",
+    "torchaudio>=2.5.0",
+    "torchvision>=0.20.0",
+    "tqdm>=4.67.0",
+    "transformers>=4.55.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Shownx-c/EA-WM"
+Paper = "https://arxiv.org/abs/2605.06192"
+Checkpoints = "https://huggingface.co/shown21/EA-WM"
+
+[tool.setuptools.packages.find]
+where = ["./"]
+include = ["diffsynth", "diffsynth.*"]
+
+[tool.setuptools]
+include-package-data = true

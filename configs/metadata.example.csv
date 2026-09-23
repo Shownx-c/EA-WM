@@ -1,0 +1,2 @@
+video,action_path,kvaf_path,prompt
+blocks_ranking_size/aloha-agilex_clean_50/video/episode0.mp4,blocks_ranking_size/aloha-agilex_clean_50/data/episode0_action.csv,blocks_ranking_size/aloha-agilex_clean_50/kvaf/episode0,"In a fixed robotic workspace, generate a rigid, physically consistent embodied robotic arm that arranges the blocks from largest to smallest."

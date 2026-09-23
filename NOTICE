@@ -1,0 +1,10 @@
+EA-WM
+Copyright 2026 EA-WM authors
+
+This repository includes adapted components from DiffSynth-Studio,
+Copyright ModelScope contributors, licensed under the Apache License 2.0.
+https://github.com/modelscope/DiffSynth-Studio
+
+EA-WM checkpoints are adapters and auxiliary branch weights for
+Wan-AI/Wan2.2-TI2V-5B. Use of the base model is governed by its license.
+https://huggingface.co/Wan-AI/Wan2.2-TI2V-5B

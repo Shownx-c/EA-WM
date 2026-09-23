@@ -1,0 +1,8 @@
+[
+  {
+    "video_path": "data/blocks_ranking_size/episode0.mp4",
+    "kvaf_path": "data/blocks_ranking_size/episode0_kvaf",
+    "prompt": "In a fixed robotic workspace, generate a rigid, physically consistent embodied robotic arm that arranges the blocks from largest to smallest.",
+    "gen_name": "blocks_ranking_size_episode0.mp4"
+  }
+]
