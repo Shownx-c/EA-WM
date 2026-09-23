@@ -214,7 +214,7 @@ export LR_WARMUP_STEPS=<WARMUP_STEPS>
 bash scripts/train_stage1.sh
 ```
 
-`LORA_LR`, `FUSION_LR`, and `KVAF_BRANCH_LR` default to `TRAINING_LR`; export them separately only when intentionally using different parameter-group rates. Checkpoints are saved after every epoch. The released `stage1.safetensors` is the normalized `epoch-4` checkpoint.
+`LORA_LR`, `FUSION_LR`, and `KVAF_BRANCH_LR` default to `TRAINING_LR`; export them separately only when intentionally using different parameter-group rates. Checkpoints are saved after every epoch.
 
 ### Stage 2
 
@@ -249,10 +249,10 @@ hf download shown21/EA-WM \
   --local-dir weights
 ```
 
-| File | Source | Contents | Use |
-|:--|:--|:--|:--|
-| `stage1.safetensors` | selected `epoch-4` | Main LoRA + KVAF-branch LoRA + KVAF head | Resume Stage 2 |
-| `stage2.safetensors` | selected `epoch-7` | Stage 1 components + event-aware fusion | Inference / evaluation |
+| File | Contents | Use |
+|:--|:--|:--|
+| `stage1.safetensors` | Main LoRA + KVAF-branch LoRA + KVAF head | Resume Stage 2 |
+| `stage2.safetensors` | Stage 1 components + event-aware fusion | Inference / evaluation |
 
 The files contain EA-WM adapters and branch parameters only. Wan2.2-TI2V-5B is downloaded separately.
 
