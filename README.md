@@ -255,3 +255,7 @@ This project builds on [Wan2.2-TI2V-5B](https://huggingface.co/Wan-AI/Wan2.2-TI2
 ## 📄 License
 
 The code is released under the [Apache License 2.0](LICENSE). The EA-WM checkpoints are designed for Wan2.2-TI2V-5B; please also follow the base model's license and the licenses of any datasets you use.
+
+## Release note
+
+This repository currently releases the joint RGB–KVAF generation model. The separately trained reference-KVAF-conditioned variant evaluated in the paper is not included in this release and should not be conflated with the released joint-generation checkpoint.
