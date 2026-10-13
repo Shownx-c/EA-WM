@@ -201,13 +201,13 @@ Training uses one process per GPU. With 32 GPUs and no gradient accumulation, th
 
 ```bash
 hf download shown21/EA-WM \
-  stage2.safetensors \
+  final.safetensors \
   --local-dir weights
 ```
 
 | File | Contents | Use |
 |:--|:--|:--|
-| `stage2.safetensors` | Final EA-WM checkpoint: RGB-stream LoRA, KVAF-stream LoRA, KVAF head, and event-aware fusion | Inference / evaluation |
+| `final.safetensors` | Final EA-WM checkpoint: RGB-stream LoRA, KVAF-stream LoRA, KVAF head, and event-aware fusion | Inference / evaluation |
 
 The checkpoint contains EA-WM adapters and branch parameters. Wan2.2-TI2V-5B is downloaded separately.
 
@@ -218,7 +218,7 @@ Create a task list from [`configs/inference_tasks.example.json`](configs/inferen
 ### Joint RGB + KVAF generation
 
 ```bash
-export CHECKPOINT=weights/stage2.safetensors
+export CHECKPOINT=weights/final.safetensors
 export TASK_JSON=configs/inference_tasks.example.json
 export OUTPUT_ROOT=outputs/inference/joint_generation
 
