@@ -7,10 +7,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 NPROC_PER_NODE="${NPROC_PER_NODE:-$($PYTHON_BIN -c 'import torch; print(max(1, torch.cuda.device_count()))')}"
-REFERENCE_KVAF_ARGS=()
-if [[ "${USE_REFERENCE_KVAF:-0}" == "1" ]]; then
-  REFERENCE_KVAF_ARGS+=(--use_reference_kvaf)
-fi
 
 export PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export DIFFSYNTH_MODEL_BASE_PATH="${DIFFSYNTH_MODEL_BASE_PATH:-$REPO_ROOT/models}"
@@ -37,5 +33,4 @@ cd "$REPO_ROOT"
   --seed_offset 1 \
   --fps 15 \
   --quality 10 \
-  --tiled \
-  "${REFERENCE_KVAF_ARGS[@]}"
+  --tiled

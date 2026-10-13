@@ -22,7 +22,7 @@ Zhaoyang Yang<sup>1,3</sup> · Yurun Jin<sup>3,4</sup> · Lizhe Qi<sup>1*</sup> 
 
 ## 📰 News
 
-- **2026-09-23:** Training code, inference code, KVAF construction tools, and Stage 1/Stage 2 checkpoints are released.
+- **2026-09-23:** Training code, inference code, KVAF construction tools, and the final EA-WM checkpoint are released.
 - **2026-05:** EA-WM preprint is available on arXiv.
 
 ## ✨ Highlights
@@ -50,11 +50,6 @@ L = w(t) · (L_RGB + L_KVAF) + λ_event · L_EDLS
   <img src="assets/method_overview.png" width="1000" alt="EA-WM architecture overview">
 </div>
 
-Training uses two stages:
-
-1. **Stage 1 — stream stabilization:** freeze event-aware fusion; train the main-DiT LoRA, KVAF-branch LoRA, and KVAF prediction head.
-2. **Stage 2 — event-aware fusion:** initialize/unfreeze the bidirectional fusion modules and continue from the Stage 1 checkpoint.
-
 ## 📊 Results
 
 Selected WorldArena metrics are normalized to `[0, 1]`; higher is better. P3CScore averages the six metrics and multiplies the result by 100.
@@ -79,14 +74,11 @@ EA-WM/
 ├── diffsynth/
 │   └── extensions/eawm.py   # KVAF branch, event-aware fusion, losses, generation
 ├── inference/generate.py    # Multi-GPU task-sharded inference
-├── scripts/
-│   ├── train_stage1.sh
-│   ├── train_stage2.sh
-│   └── infer.sh
+├── scripts/infer.sh         # Joint RGB + KVAF inference launcher
 ├── tools/
 │   ├── build_kvaf.py        # URDF/FK/camera-projection KVAF renderer
 │   └── normalize_checkpoint.py
-└── training/train_eawm.py   # Two-stage distributed training entry point
+└── training/train_eawm.py   # Distributed training entry point
 ```
 
 ## ⚙️ Environment
@@ -180,85 +172,48 @@ See [`configs/metadata.example.csv`](configs/metadata.example.csv). Each RGB seq
 
 ## 🚀 Training
 
-### What each stage argument means
+### Training configuration
 
-The paper specifies LoRA rank `32`, a learning rate of `8e-5` for all trainable components, 32 H100 GPUs, and a global batch size of 32. It does **not** prescribe the Stage 1 epoch count, dataset repeat, warmup length, or EDLS weight as universal settings. The Stage 1 launcher therefore asks you to set these values explicitly.
+The training entry point is [`training/train_eawm.py`](training/train_eawm.py), which reads paired RGB and KVAF sequences from the metadata CSV. The paper specifies LoRA rank `32`, a learning rate of `8e-5` for all trainable components, 32 H100 GPUs, and a global batch size of 32.
 
 | Argument | Meaning |
 |:--|:--|
 | `num_epochs` | Number of epochs executed by the current run |
-| `stage1_epochs` | Epochs with fusion frozen; setting it equal to `num_epochs` produces a Stage 1-only run |
+| `dataset_repeat` | Number of times the dataset is repeated within an epoch |
 | `learning_rate` | Fallback/base optimizer learning rate |
 | `lora_learning_rate` | Main RGB-branch LoRA learning rate |
 | `context_learning_rate` | Bidirectional fusion and KVAF-head learning rate |
 | `context_block_learning_rate` | KVAF-branch LoRA learning rate |
 | `event_loss_weight` | `λ_event`, the multiplier on EDLS |
+| `lr_warmup_steps` | Number of optimizer steps used for learning-rate warmup |
 | `context_interval` | Number of DiT blocks between fusion insertions; `5` gives six fusion locations over 30 blocks |
-| `resume_dit_checkpoint` | Combined Stage 1 checkpoint loaded before Stage 2 |
+| `resume_dit_checkpoint` | Optional combined EA-WM checkpoint used to initialize model parameters |
 
-### Stage 1
-
-Fill the values appropriate for your training schedule. The launcher sets `stage1_epochs=num_epochs`, so fusion remains frozen throughout this run.
+Set epoch counts, dataset repetition, loss weights, and scheduler settings for your experiment. To inspect all command-line options:
 
 ```bash
-export DATASET_ROOT=/path/to/RoboTwin2.0_dataset/dataset
-export METADATA_PATH=/path/to/train_metadata.csv
-export OUTPUT_DIR=outputs/train/stage1
-
-export NUM_EPOCHS=<STAGE1_EPOCHS>
-export DATASET_REPEAT=<DATASET_REPEAT>
-export TRAINING_LR=<LEARNING_RATE>
-export EVENT_LOSS_WEIGHT=<EDLS_WEIGHT>
-export LR_WARMUP_STEPS=<WARMUP_STEPS>
-
-bash scripts/train_stage1.sh
+python training/train_eawm.py --help
 ```
 
-`LORA_LR`, `FUSION_LR`, and `KVAF_BRANCH_LR` default to `TRAINING_LR`; export them separately only when intentionally using different parameter-group rates. Checkpoints are saved after every epoch.
-
-### Stage 2
-
-Stage 2 resumes from a Stage 1 checkpoint, sets `stage1_epochs=0`, and trains event-aware bidirectional fusion from the beginning of the resumed run. The launcher contains the release configuration: 8 epochs, dataset repeat 10, cosine scheduling, 100 warmup steps, LoRA rank 32, learning rate `8e-5` for the trainable EA-WM groups, and EDLS weight `0.1`.
-
-```bash
-export DATASET_ROOT=/path/to/RoboTwin2.0_dataset/dataset
-export METADATA_PATH=/path/to/train_metadata.csv
-export STAGE1_CHECKPOINT=weights/stage1.safetensors
-export OUTPUT_DIR=outputs/train/stage2
-
-bash scripts/train_stage2.sh
-```
-
-For multi-node training, set the launcher variables on every node before running either script:
-
-```bash
-export NNODES=4
-export NPROC_PER_NODE=8
-export NODE_RANK=<0_TO_3>
-export MASTER_ADDR=<RANK_0_HOST>
-export MASTER_PORT=29500
-```
-
-The optimizer uses one process per GPU. With 32 GPUs and no gradient accumulation, the effective global batch size is 32.
+Training uses one process per GPU. With 32 GPUs and no gradient accumulation, the effective global batch size is 32. Checkpoints are saved after every epoch.
 
 ## 🤗 Checkpoints
 
 ```bash
 hf download shown21/EA-WM \
-  stage1.safetensors stage2.safetensors \
+  stage2.safetensors \
   --local-dir weights
 ```
 
 | File | Contents | Use |
 |:--|:--|:--|
-| `stage1.safetensors` | Main LoRA + KVAF-branch LoRA + KVAF head | Resume Stage 2 |
-| `stage2.safetensors` | Stage 1 components + event-aware fusion | Inference / evaluation |
+| `stage2.safetensors` | Final EA-WM checkpoint: RGB-stream LoRA, KVAF-stream LoRA, KVAF head, and event-aware fusion | Inference / evaluation |
 
-The files contain EA-WM adapters and branch parameters only. Wan2.2-TI2V-5B is downloaded separately.
+The checkpoint contains EA-WM adapters and branch parameters. Wan2.2-TI2V-5B is downloaded separately.
 
 ## 🎬 Inference
 
-Create a task list from [`configs/inference_tasks.example.json`](configs/inference_tasks.example.json). `video_path` (or `input_image`) supplies the initial RGB frame. The main EA-WM configuration jointly samples future RGB and KVAF latents from noise, so `kvaf_path` is optional unless reference-KVAF conditioning is enabled.
+Create a task list from [`configs/inference_tasks.example.json`](configs/inference_tasks.example.json). Each entry supplies a text `prompt` and an initial RGB frame through `input_image` or the first frame of `video_path`. EA-WM jointly generates future RGB and KVAF videos.
 
 ### Joint RGB + KVAF generation
 
@@ -272,23 +227,14 @@ bash scripts/infer.sh
 
 The release settings are `480 × 640`, 81 frames, 50 denoising steps, RGB/KVAF CFG `5.0`, seed `1 + task_index`, tiled VAE processing, and 15 FPS output.
 
-### Reference-KVAF conditioned generation
-
-Set `kvaf_path` in every task entry and enable:
-
-```bash
-export USE_REFERENCE_KVAF=1
-bash scripts/infer.sh
-```
-
 Each process handles task indices satisfying `task_index % WORLD_SIZE == RANK`; increasing `NPROC_PER_NODE` parallelizes independent samples rather than splitting a single sample.
 
 Generated files are written to:
 
 ```text
-outputs/inference/
+outputs/inference/joint_generation/
 ├── videos/       # RGB rollouts
-└── kvaf_videos/  # jointly generated or reference-conditioned KVAF rollouts
+└── kvaf_videos/  # Jointly generated KVAF rollouts
 ```
 
 ## 🙏 Acknowledgements

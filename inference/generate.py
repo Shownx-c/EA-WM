@@ -30,7 +30,7 @@ DEFAULT_NEGATIVE_PROMPT = (
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Run EA-WM batch inference with Wan2.2-TI2V-5B."
+        description="Jointly generate RGB and KVAF videos with EA-WM and Wan2.2-TI2V-5B."
     )
     parser.add_argument("--checkpoint", type=str, required=True, help="Checkpoint stem or .safetensors path.")
     parser.add_argument("--task_json", type=str, required=True, help="JSON file containing inference tasks.")
@@ -58,14 +58,8 @@ def parse_args():
     parser.add_argument("--seed_offset", type=int, default=1)
     parser.add_argument("--fps", type=int, default=15)
     parser.add_argument("--quality", type=int, default=10)
-    parser.add_argument("--kvaf_key", type=str, default="kvaf_path", help="Task-json key that points to the KVAF frame folder.")
     parser.add_argument("--rand_device", type=str, default="cpu")
     parser.add_argument("--negative_prompt", type=str, default=DEFAULT_NEGATIVE_PROMPT)
-    parser.add_argument(
-        "--use_reference_kvaf",
-        action="store_true",
-        help="Use the KVAF frames from each task entry instead of sampling KVAF latents from noise.",
-    )
     parser.add_argument(
         "--framewise_decoding",
         action="store_true",
@@ -156,7 +150,6 @@ def main():
     prepared_kvaf_branch = prepare_eawm_kvaf_branch(pipe, context_interval=args.context_interval)
     inject_eawm(
         pipe,
-        kvaf_input_key=args.kvaf_key,
         context_interval=args.context_interval,
         prebuilt_kvaf_branch=prepared_kvaf_branch,
         context_residual_scale=args.context_residual_scale,
@@ -179,10 +172,6 @@ def main():
             continue
 
         input_image = resolve_input_image(item, height=args.height, width=args.width)
-        kvaf_path = item.get(args.kvaf_key) or item.get("kvaf_path")
-        if args.use_reference_kvaf and kvaf_path is None:
-            raise ValueError(f"Task {task_index} is missing `{args.kvaf_key}` but --use_reference_kvaf was enabled.")
-
         gen_name = output_name_for_item(item, task_index)
         video_path = video_dir / gen_name
         kvaf_video_path = kvaf_video_dir / f"{Path(gen_name).stem}_kvaf{Path(gen_name).suffix}"
@@ -201,8 +190,7 @@ def main():
             height=args.height,
             width=args.width,
             num_inference_steps=args.num_inference_steps,
-            sample_kvaf_from_noise=not args.use_reference_kvaf,
-            kvaf_path=kvaf_path,
+            sample_kvaf_from_noise=True,
             return_kvaf_video=True,
             return_dict=True,
             context_residual_scale=args.context_residual_scale,
